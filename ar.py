@@ -51,7 +51,7 @@ for i in ri:
 print('\n')
 so = np.array(so)
 norm_signal = so-so.min()
-norm_signal = norm_signal/norm_signal.max()
+norm_signal = 2*norm_signal/norm_signal.max()
 norm_signal = norm_signal-1
 
 # write audio file
