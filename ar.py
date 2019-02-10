@@ -2,62 +2,59 @@ from scipy.io import wavfile
 import numpy as np
 import matplotlib.pyplot as plt
 
+# read audio
 fn = 'safi_v1.wav'
 Fs,x = wavfile.read(fn)
+# x = x[:5*Fs,0]
+Ts = 1/Fs
 
-# percent time stretch
-bottom 	= 50
-top 	= 150
-N		= len(x)
-Ts		= 1
+# generate time modulation signal
+	# Periodic
+	# use a generator!
+def singen(T = 1,Fs = 44100,A=1,bias=0,phase=0):
+	s = A*np.sin(np.linspace(0,2*np.pi,T*Fs)+phase)+bias
+	while True:
+		for x in s:
+			yield(x)
 
-control = np.linspace(bottom,top,N)
+# generate desired sample indices
+	# bounded by min/max time with a border equal
+	# to the window width
+width = 20
+ri = [width] 							# resampled indices
+s = singen(T=.5,Fs=Fs,A=5,bias=100) 	# control signal
+while True:
+	ri.append(ri[-1]+1*s.__next__()/100)
+	if ri[-1]>len(x)-width:
+		nope = ri.pop()
+		break
 
-s = np.sin(np.linspace(bottom,top,N)*10)
-s = s*.5
-s = s*100
-s += 100
-control = s
+# iterate through the generated indices,
+# using a windowed sinc reconstruction
+# centered at the floor of the current index.
 
-# control = 100*np.ones(control.shape)
-
-timeIdx = np.linspace(0,len(x),len(x)-1)
-
-temp = 0
-stretchIdx = []
-stretchIdx.append(timeIdx[0])
-for i,c in zip(timeIdx,control):
-	stretchIdx.append(temp + Ts*100/c)
-	temp = stretchIdx[-1]
-
-stretchIdx = np.array(stretchIdx)
-timeIdx = np.linspace(0,len(x),len(x))
-
-rs = np.zeros(len(timeIdx))
-
-i = 0
-for iS in stretchIdx:
-	val = 0
-	for iT in timeIdx:
-		rs[i] += np.sinc(-iT+iS)
-	i += 1
-	if i%10 == 0:
-		print(i/len(stretchIdx),end='')
-
-print('done')
+so = [] 				# signal out
+ctr = 0
+for i in ri:
+	t = 0
+	rt = width+i%1
+	for v in x[int(i)-width:int(i)+width]:
+		t += v*np.sinc(rt)
+		rt -= 1
+	so.append(t)
 
 
+	if not ctr%44100:
+		print(ctr/len(ri),end='\r')
+	ctr += 1
 
+print('\n')
+so = np.array(so)
+norm_signal = so-so.min()
+norm_signal = norm_signal/norm_signal.max()
+norm_signal = norm_signal-1
 
-
-
-# for c in d_control:
-if [True,False][1]:
-	plt.subplot(2,1,1)
-	plt.plot(stretchIdx)
-	plt.subplot(2,1,2)
-	plt.plot(control)
-	plt.show()
-
+# write audio file
+wavfile.write('tester2.wav',data=norm_signal,rate=Fs)
 
 
