@@ -26,7 +26,7 @@ class autoResampler:
 		# print(s.__next__())
 		newIdx = self.genNewIdx(s)
 		self.out = self.windowedSinc(newIdx,self.x,self.width)
-		self.out = self.norm(out)
+		self.out = self.norm(self.out)
 		self.write_audio(self.out)
 
 
